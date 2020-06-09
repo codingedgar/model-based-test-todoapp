@@ -6,6 +6,12 @@ import {
   EmptyEnterCommand,
   TrimEnterCommand,
   WriteInputCommand,
+  MarkAllCheckCommand,
+  ToggleItemCheckedCommand,
+  TriggerEditingCommand,
+  EditTodoCommand,
+  EditEmptyCommand,
+  EditCancelCommand,
 } from './commands';
 import {
   validToDoArbitrary,
@@ -18,6 +24,8 @@ describe('Index', () => {
   it(
     'stateful',
     async () => {
+
+      // try 
 
       await page.evaluateOnNewDocument(() => localStorage.clear());
 
@@ -39,17 +47,39 @@ describe('Index', () => {
               fc.constant(new WhiteEnterCommand()),
               fc.constant(new TrimEnterCommand()),
               fc.constant(new EmptyEnterCommand()),
-              // fc.constant((clt('ValidEnterCommand')(null), new ValidEnterCommand())),
-              // fc.constant((clt('InvalidEnterCommand')(null), new InvalidEnterCommand())),
+              fc.constant(new MarkAllCheckCommand()),
+              fc.constant(new ToggleItemCheckedCommand()),
+              fc.constant(new TriggerEditingCommand()),
+              validToDoArbitrary()
+                .map(text => new EditTodoCommand({ text: text, type: 'valid' })),
+              trimToDoArbitrary()
+                .map(text => new EditTodoCommand({
+                  text: text,
+                  type: 'trim',
+                })),
+              fc.constant(new EditEmptyCommand()),
+              validToDoArbitrary()
+                .chain(text => fc.record({
+                  text: fc.constant(text),
+                  number: fc.nat().noShrink()
+                }))
+                .map(({ text, number }) => new EditCancelCommand(
+                  {
+                    text,
+                    type: 'valid'
+                  },
+                  number
+                )),
             ],
             // {
-            //   replayPath: "BBn:F"
+            //   replayPath: "ABDB//H:1B"
             // },
             // 10,
           ),
           async (commands) => {
 
             await page.goto('http://todomvc.com/examples/react/', { waitUntil: 'networkidle2' });
+            // await page.goto('http://todomvc.com/examples/vanillajs/', { waitUntil: 'networkidle2' });
 
             await page.waitFor(CLASS_SELECTORS.NEW_TODO);
 
@@ -60,7 +90,8 @@ describe('Index', () => {
                   input: {
                     text: '',
                     type: 'empty' as const,
-                  }
+                  },
+                  toggleAll: false,
                 },
                 real: page
               }),
@@ -68,10 +99,15 @@ describe('Index', () => {
             );
           }),
         {
-          // seed: 225534091, path: "11:5:3:3:3:3:3:3:3:3:3:3:3:3", endOnFailure: true,
-          numRuns: 50,
+          numRuns: 20,
+          // verbose: true,
+          // seed: 1859182401, path: "3:3:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5", endOnFailure: true
         }
       );
+      // } catch (e) {
+      //   console.log(e)
+      //   await page.waitFor(100000000)
+      // }
     },
     1000 * 60 * 10
   )
