@@ -1,6 +1,6 @@
 import { JSHandle, Page } from 'puppeteer';
 import { CLASS_SELECTORS, Model } from './cons';
-import { valueOfEl, itemsLeftCount } from './utils';
+import { valueOfEl, itemsLeftCount, filteredToDos } from './utils';
 
 export async function checkModel(m: Model) {
 
@@ -19,20 +19,83 @@ export async function checkModel(m: Model) {
     checkToggleAll(m, page),
     checkNewToDo(m),
     checkEditing(m),
+    checkClearCompleted(m),
+    checkFilterCount(m),
+    checkFilterHighlight(m),
   ])
+
+  await Promise.all([
+    checkBBBB(m),
+  ])
+
+}
+
+export async function checkBBBB(m: Model) {
+  // console.log(m)
+  expect(m.navigation[m.navigation.length - 1]).toBe(m.filter)
+
+}
+export async function checkFilterHighlight(m: Model) {
+  if (m.toDos.length > 0) {
+
+    await page.evaluate(
+      (selector) => Array.from(
+        document.querySelectorAll(selector),
+        el => [el.textContent, el.className]
+      ),
+      CLASS_SELECTORS.FILTER_ITEMS,
+    )
+      .then(value => {
+
+        expect(value).toEqual([
+          ['All', m.filter === 'all' ? 'selected' : ''],
+          ['Active', m.filter === 'active' ? 'selected' : ''],
+          ['Completed', m.filter === 'completed' ? 'selected' : ''],
+        ])
+
+      })
+
+  }
+
+}
+
+export async function checkFilterCount(m: Model) {
+
+  await page
+    .$$(CLASS_SELECTORS.TODO_ITEMS_INPUT)
+    .then(async els => {
+      // console.log(m)
+      // console.log(els)
+      expect(els.length).toBe(filteredToDos(m).length)
+
+    })
+}
+
+export async function checkClearCompleted(m: Model) {
+  if (itemsLeftCount(m) < m.toDos.length) {
+    await valueOfEl(CLASS_SELECTORS.CLEAR_COMPLETED)
+      .then(value => {
+        expect(value).toBe('Clear completed');
+      })
+  } else {
+    await expect(page).not.toMatchElement(CLASS_SELECTORS.CLEAR_COMPLETED)
+  }
 
 }
 
 export async function checkEditing(m: Model) {
   if (m.toDos.length > 0) {
 
-    await page
-      .$('.todo-list li .view')
-      .then(async view =>
-        await view?.evaluate(el => window.getComputedStyle(el).display)
-      )
+    await page.evaluate(
+      (selector) => Array.from(
+        document.querySelectorAll(selector),
+        el => window.getComputedStyle(el).display
+      ),
+      '.todo-list li .view',
+    )
       .then(x => {
-        expect(x).toBe((m.toDos[0].editing) ? 'none' : 'block');
+        // console.log(m)
+        expect(x).toEqual(filteredToDos(m).map(toDo => (toDo.editing) ? 'none' : 'block'));
       })
 
   }
@@ -52,16 +115,6 @@ export async function checkCount(m: Model) {
         } else {
           expect(count).toBe(`${left} items left`);
         }
-
-        // if (m.toggleAll) {
-        //   expect(count).toBe(`0 items left`);
-        //     expect(count).toBe(`${m.toDos.length} item left`);
-        // } else {
-        //   if (m.toDos.length === 1) {
-        //   } else if (m.toDos.length > 1) {
-        //     expect(count).toBe(`${m.toDos.length} items left`);
-        //   }
-        // }
       })
 
   }
@@ -101,7 +154,6 @@ export async function checkLocalStorage(m: Model) {
   if (m.toDos.length > 0) {
     return page.evaluate(
       () => localStorage.getItem('react-todos')
-      // () => localStorage.getItem('todos-vanillajs')
     )
       .then(value => {
 
@@ -123,8 +175,7 @@ export async function checkToDosItems(m: Model) {
         CLASS_SELECTORS.TODO_ITEMS,
       )
         .then(value => {
-
-          expect(value).toEqual(m.toDos.map(x => [x.text]));
+          expect(value).toEqual(filteredToDos(m).map(x => [x.text]));
 
         }),
       checkTodoItemsInput(m),
@@ -184,10 +235,11 @@ export async function checkToggleAll(m: Model, page: Page) {
           CLASS_SELECTORS.TODO_ITEMS
         )
         .then(x => {
-
-          expect(x).toEqual(m.toDos.map(({ text, editing, checked }) => [
+          // console.log(m)
+          expect(x).toEqual(filteredToDos(m).map(({ text, editing, checked }) => [
             text,
             `${(m.toggleAll || checked) ? 'completed' : ''}${((m.toggleAll || checked) && editing) ? ' ' : ''}${editing ? 'editing' : ''}`
+            // `${(m.toggleAll || checked) ? 'completed' : ''}${((m.toggleAll || checked) && editing) ? ' ' : ''}${editing ? 'editing' : ''}`
           ]));
 
         }),
@@ -198,8 +250,8 @@ export async function checkToggleAll(m: Model, page: Page) {
 
           const left = itemsLeftCount(m)
 
-          expect(left === m.toDos.length - 1).toBe(m.toggleAll)
-          expect(checked).toBe(left === m.toDos.length - 1)
+          expect(left === 0).toBe(m.toggleAll)
+          expect(checked).toBe(left === 0)
 
         }),
       page
@@ -209,7 +261,7 @@ export async function checkToggleAll(m: Model, page: Page) {
         )
         .then(x => {
 
-          expect(x).toEqual(m.toDos.map((toDo) => [m.toggleAll || toDo.checked]));
+          expect(x).toEqual(filteredToDos(m).map((toDo) => [m.toggleAll || toDo.checked]));
 
         }),
     ])
@@ -225,7 +277,7 @@ export async function checkTodoItemsInput(m: Model) {
       )
       .then(x => {
 
-        expect(x).toEqual(m.toDos.map((toDo) => [toDo.checked]));
+        expect(x).toEqual(filteredToDos(m).map((toDo) => [toDo.checked]));
 
       }),
   ])

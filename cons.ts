@@ -4,6 +4,16 @@ export type ToDoItem = {
   editing: boolean
 }
 
+export const STATIC = {
+  VALID: 'valid',
+  TRIM: 'trim',
+  WHITESPACE: 'whitespace',
+  EMPTY: 'empty',
+  ALL: 'all',
+  ACTIVE: 'active',
+  COMPLETED: 'completed'
+} as const
+
 export type Model = {
   input: {
     text: string
@@ -11,9 +21,9 @@ export type Model = {
   }
   toDos: ToDoItem[]
   toggleAll: boolean
-
+  filter: 'all' | 'active' | 'completed',
+  navigation: Model['filter'][]
 };
-
 
 export const CLASS_SELECTORS = {
   NEW_TODO: '.new-todo',
@@ -31,4 +41,4 @@ export const CLASS_SELECTORS = {
   CLEAR_COMPLETED: '.clear-completed',
   FILTERS: '.filters',
   FILTER_ITEMS: '.filters li a'
-}
+} as const

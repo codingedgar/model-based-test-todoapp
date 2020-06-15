@@ -1,5 +1,5 @@
 import * as fc from 'fast-check'
-import { CLASS_SELECTORS } from './cons';
+import { CLASS_SELECTORS, STATIC } from './cons';
 import {
   ValidEnterCommand,
   WhiteEnterCommand,
@@ -12,12 +12,19 @@ import {
   EditTodoCommand,
   EditEmptyCommand,
   EditCancelCommand,
+  ClearCompletedCommand,
+  AddToDosCommands,
+  GoToAllCommand,
+  GoToActiveCommand,
+  GoToCompletedCommand,
+  GoBackCommand,
 } from './commands';
 import {
   validToDoArbitrary,
   whitespaceToDoArbitrary,
   trimToDoArbitrary,
 } from './arbitraties';
+import { string } from 'fast-check';
 
 describe('Index', () => {
 
@@ -25,7 +32,7 @@ describe('Index', () => {
     'stateful',
     async () => {
 
-      // try 
+      // try {
 
       await page.evaluateOnNewDocument(() => localStorage.clear());
 
@@ -34,45 +41,48 @@ describe('Index', () => {
           fc.commands(
             [
               validToDoArbitrary()
-                .map(text => new WriteInputCommand({ text: text, type: 'valid' })),
+                .map(toDo => new WriteInputCommand(toDo)),
               whitespaceToDoArbitrary()
-                .map(text => new WriteInputCommand({ text: text, type: 'whitespace' })),
+                .map(toDo => new WriteInputCommand(toDo)),
               trimToDoArbitrary()
-                .map(text => new WriteInputCommand({
-                  text: text,
-                  type: 'trim',
-                })),
+                .map(toDo => new WriteInputCommand(toDo)),
               fc.constant(new WriteInputCommand({ text: '', type: 'empty' })),
               fc.constant(new ValidEnterCommand()),
               fc.constant(new WhiteEnterCommand()),
               fc.constant(new TrimEnterCommand()),
               fc.constant(new EmptyEnterCommand()),
+              fc.array(validToDoArbitrary())
+                .map(toDos => new AddToDosCommands(toDos)),
               fc.constant(new MarkAllCheckCommand()),
               fc.constant(new ToggleItemCheckedCommand()),
-              fc.constant(new TriggerEditingCommand()),
+              fc.nat().noShrink().map(number => new TriggerEditingCommand(number)),
               validToDoArbitrary()
-                .map(text => new EditTodoCommand({ text: text, type: 'valid' })),
-              trimToDoArbitrary()
-                .map(text => new EditTodoCommand({
-                  text: text,
-                  type: 'trim',
-                })),
-              fc.constant(new EditEmptyCommand()),
-              validToDoArbitrary()
-                .chain(text => fc.record({
-                  text: fc.constant(text),
+                .chain(toDo => fc.record({
+                  toDo: fc.constant(toDo),
                   number: fc.nat().noShrink()
                 }))
-                .map(({ text, number }) => new EditCancelCommand(
-                  {
-                    text,
-                    type: 'valid'
-                  },
-                  number
-                )),
+                .map(({ toDo, number }) => new EditTodoCommand(toDo, number)),
+              trimToDoArbitrary()
+                .chain(toDo => fc.record({
+                  toDo: fc.constant(toDo),
+                  number: fc.nat().noShrink()
+                }))
+                .map(({ toDo, number }) => new EditTodoCommand(toDo, number)),
+              fc.nat().noShrink().map(number => new EditEmptyCommand(number)),
+              validToDoArbitrary()
+                .chain(toDo => fc.record({
+                  toDo: fc.constant(toDo),
+                  number: fc.nat().noShrink()
+                }))
+                .map(({ toDo, number }) => new EditCancelCommand(toDo, number)),
+              fc.constant(new ClearCompletedCommand()),
+              fc.constant(new GoToAllCommand()),
+              fc.constant(new GoToActiveCommand()),
+              fc.constant(new GoBackCommand()),
+
             ],
             // {
-            //   replayPath: "ABDB//H:1B"
+            //   replayPath: ""
             // },
             // 10,
           ),
@@ -89,9 +99,11 @@ describe('Index', () => {
                   toDos: [],
                   input: {
                     text: '',
-                    type: 'empty' as const,
+                    type: STATIC.EMPTY,
                   },
+                  filter: STATIC.ALL,
                   toggleAll: false,
+                  navigation: [STATIC.ALL]
                 },
                 real: page
               }),
@@ -100,8 +112,8 @@ describe('Index', () => {
           }),
         {
           numRuns: 20,
+          // numRuns: 100,
           // verbose: true,
-          // seed: 1859182401, path: "3:3:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5:5", endOnFailure: true
         }
       );
       // } catch (e) {

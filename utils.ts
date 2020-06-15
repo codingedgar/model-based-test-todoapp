@@ -9,9 +9,15 @@ import {
 } from 'ramda';
 import { Model } from "./cons";
 
+export function filteredToDos(m: Model): Model['toDos'] {
+  return m.toDos.filter(
+    x => m.filter === 'all' || (x.checked === (m.filter === 'completed'))
+  )
+}
+
 export function toggleCheckTodo(index: number, m: Model): Model {
   m.toDos[index].checked = !m.toDos[index].checked;
-  m.toggleAll = itemsLeftCount(m) === m.toDos.length - 1;
+  m.toggleAll = itemsLeftCount(m) === 0;
 
   return m
 }
@@ -27,6 +33,7 @@ export function itemsLeftCount(m: Model) {
 }
 
 export function pickToDo(number: number, m: Model) {
+  // console.log(m)
   return scale(
     number,
     0,
@@ -36,8 +43,10 @@ export function pickToDo(number: number, m: Model) {
   )
 }
 
-export function scale(n: number, toMin: number, toMax: number, fromMin: number, fromMax: number) {
+function scale(n: number, toMin: number, toMax: number, fromMin: number, fromMax: number) {
   return clamp(
+    toMin,
+    toMax,
     Math.floor(
       (
         (
@@ -47,8 +56,6 @@ export function scale(n: number, toMin: number, toMax: number, fromMin: number, 
       )
       + toMin
     ),
-    toMin,
-    toMax
   );
 }
 
@@ -74,6 +81,9 @@ export function valueOfEl(selector: string) {
         } else if (el.nodeName === 'SPAN') {
           // return [el.nodeName, (el as HTMLSpanElement).textContent];
           return (el as HTMLSpanElement).textContent;
+        } else if (el.nodeName === 'BUTTON') {
+          // return [el.nodeName, (el as HTMLSpanElement).textContent];
+          return (el as HTMLButtonElement).textContent;
         }
 
       })
@@ -83,11 +93,17 @@ export function valueOfEl(selector: string) {
 
 export function isValidTodo(input: string): boolean {
 
-  return pipe(
-    input,
-    x => x.trim(),
-    x => x.length > 0 && x.length === input.length,
-  )
+  return allPass([
+    input => {
+      const trimmed = input.trim();
+      return trimmed.length > 0 && trimmed.length === input.length;
+    },
+    (input: string) => {
+      // console.log(JSON.stringify(input))
+      // console.log(JSON.stringify(!input.match(/[^\u0000]/gm)))
+      return !input.match(/[\u0000]/gm);
+    }
+  ])(input)
 
 }
 
