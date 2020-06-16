@@ -22,6 +22,16 @@ export function toggleCheckTodo(index: number, m: Model): Model {
   return m
 }
 
+export function itemsLeftCount2(toDos: Model['toDos']) {
+  return toDos.reduce(
+    (acc, toDo) => (!toDo.checked)
+      ? acc + 1
+      : acc,
+    0
+  )
+
+}
+
 export function itemsLeftCount(m: Model) {
   return m.toDos.reduce(
     (acc, toDo) => (!toDo.checked)

@@ -25,6 +25,8 @@ import {
   trimToDoArbitrary,
 } from './arbitraties';
 import { string } from 'fast-check';
+import { modelMachine } from './modelMachine';
+import { interpret } from 'xstate';
 
 describe('Index', () => {
 
@@ -78,12 +80,16 @@ describe('Index', () => {
               fc.constant(new ClearCompletedCommand()),
               fc.constant(new GoToAllCommand()),
               fc.constant(new GoToActiveCommand()),
+              fc.constant(new GoToCompletedCommand()),
               fc.constant(new GoBackCommand()),
 
             ],
             // {
-            //   replayPath: ""
+            //   replayPath: "AABABt:q"
             // },
+            {
+              replayPath: "ABAAB:V"
+            },
             // 10,
           ),
           async (commands) => {
@@ -95,25 +101,29 @@ describe('Index', () => {
 
             await fc.asyncModelRun(
               () => ({
-                model: {
-                  toDos: [],
-                  input: {
-                    text: '',
-                    type: STATIC.EMPTY,
-                  },
-                  filter: STATIC.ALL,
-                  toggleAll: false,
-                  navigation: [STATIC.ALL]
-                },
+                // model: {
+                //   toDos: [],
+                //   input: {
+                //     text: '',
+                //     type: STATIC.EMPTY,
+                //   },
+                //   filter: STATIC.ALL,
+                //   toggleAll: false,
+                //   navigation: [STATIC.ALL]
+                // },
+                // model: interpret(modelMachine).start(),
+                model: modelMachine.initialState,
                 real: page
               }),
               commands
             );
           }),
         {
-          numRuns: 20,
-          // numRuns: 100,
+          // numRuns: 20,
+          numRuns: 100,
           // verbose: true,
+          // seed: -1884671988, path: "3:3:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1", endOnFailure: true
+          seed: -1603525407, path: "1:2", endOnFailure: true
         }
       );
       // } catch (e) {

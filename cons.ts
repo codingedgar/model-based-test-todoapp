@@ -14,11 +14,28 @@ export const STATIC = {
   COMPLETED: 'completed'
 } as const
 
+export type ValidInput = {
+  text: string
+  type: 'valid'
+}
+
+export type TrimInput = {
+  text: string
+  type: 'trim'
+}
+
+export type WhiteSpaceInput = {
+  text: string
+  type: 'whitespace'
+}
+
+export type EmptyInput = {
+  text: string
+  type: 'empty'
+}
+
 export type Model = {
-  input: {
-    text: string
-    type: 'valid' | 'trim' | 'whitespace' | 'empty'
-  }
+  input: ValidInput | TrimInput | WhiteSpaceInput | EmptyInput,
   toDos: ToDoItem[]
   toggleAll: boolean
   filter: 'all' | 'active' | 'completed',
