@@ -17,16 +17,16 @@ import {
   clearNewToDo
 } from './utils';
 import { all, } from "ramda";
-import { ModelMachine2 } from './modelMachine';
+import { ModelMachine } from './modelMachine';
 
-export class EnterCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class EnterCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
   constructor() { }
 
-  check(_m: Readonly<ModelMachine2>) {
+  check(_m: Readonly<ModelMachine>) {
     return true
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await checkModel(m.state.context)
     // .catch(e => { throw new Error(e) })
@@ -49,14 +49,14 @@ export class EnterCommand implements fc.AsyncCommand<ModelMachine2, Page, false>
   toString = () => `${EnterCommand.name}`;
 }
 
-export class WriteInputCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class WriteInputCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
   constructor(readonly input: Model['input']) { }
 
-  check(_m: Readonly<ModelMachine2>) {
+  check(_m: Readonly<ModelMachine>) {
     return true;
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await clearNewToDo(CLASS_SELECTORS.NEW_TODO)
 
@@ -77,16 +77,16 @@ export class WriteInputCommand implements fc.AsyncCommand<ModelMachine2, Page, f
   toString = () => `${WriteInputCommand.name} ${JSON.stringify(this.input)}`;
 }
 
-export class MarkAllCompletedCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class MarkAllCompletedCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
   constructor() { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
 
     return m.state.context.toDos.length > 0;
 
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await page.click(CLASS_SELECTORS.TOGGLE_ALL_LABEL)
 
@@ -104,16 +104,16 @@ export class MarkAllCompletedCommand implements fc.AsyncCommand<ModelMachine2, P
   toString = () => `${MarkAllCompletedCommand.name}`;
 }
 
-export class ToggleItemCompletedCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class ToggleItemCompletedCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
   constructor() { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
 
     return filteredToDos(m.state.context).length > 0;
 
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await page
       .$$(CLASS_SELECTORS.TODO_ITEMS_INPUT)
@@ -144,16 +144,16 @@ export class ToggleItemCompletedCommand implements fc.AsyncCommand<ModelMachine2
   toString = () => `${ToggleItemCompletedCommand.name}`;
 }
 
-export class TriggerEditingCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class TriggerEditingCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
   constructor(readonly number: number) { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
 
     return filteredToDos(m.state.context).length > 0;
 
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
     const index = pickToDo(this.number, m.state.context);
 
     await page
@@ -193,16 +193,16 @@ export class TriggerEditingCommand implements fc.AsyncCommand<ModelMachine2, Pag
   toString = () => `${TriggerEditingCommand.name}`;
 }
 
-export class EditTodoCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class EditTodoCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
   constructor(readonly todo: Model['input'], readonly number: number) { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
 
     return filteredToDos(m.state.context).length > 0;
 
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
     const index = pickToDo(this.number, m.state.context);
 
     await page
@@ -257,16 +257,16 @@ export class EditTodoCommand implements fc.AsyncCommand<ModelMachine2, Page, fal
   toString = () => `${EditTodoCommand.name} ${JSON.stringify(this.todo)}`;
 }
 
-export class EditEmptyCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class EditEmptyCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
   constructor(readonly number: number) { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
 
     return filteredToDos(m.state.context).length > 0;
 
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
     const index = pickToDo(this.number, m.state.context);
 
     await page
@@ -312,20 +312,20 @@ export class EditEmptyCommand implements fc.AsyncCommand<ModelMachine2, Page, fa
   toString = () => `${EditEmptyCommand.name}`;
 }
 
-export class EditCancelCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class EditCancelCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
 
-  model: Readonly<ModelMachine2> | undefined
+  model: Readonly<ModelMachine> | undefined
 
   constructor(readonly todo: Model['input'], readonly number: number) { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
 
     this.model = m;
     return filteredToDos(m.state.context).length > 0;
 
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
     this.model = m;
     const index = pickToDo(this.number, m.state.context);
 
@@ -378,15 +378,15 @@ export class EditCancelCommand implements fc.AsyncCommand<ModelMachine2, Page, f
 
 }
 
-export class ClearCompletedCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class ClearCompletedCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
 
   constructor() { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
     return itemsLeftCount(m.state.context.toDos) < m.state.context.toDos.length;
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await page.click(CLASS_SELECTORS.CLEAR_COMPLETED);
 
@@ -404,15 +404,15 @@ export class ClearCompletedCommand implements fc.AsyncCommand<ModelMachine2, Pag
 
 }
 
-export class AddToDosCommands implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class AddToDosCommands implements fc.AsyncCommand<ModelMachine, Page, false> {
 
   constructor(readonly toDos: ValidInput[]) { }
 
-  check(_m: Readonly<ModelMachine2>) {
+  check(_m: Readonly<ModelMachine>) {
     return true
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     expect(all(isValidTodo)(this.toDos.map(x => x.text))).toBe(true)
 
@@ -451,15 +451,15 @@ export class AddToDosCommands implements fc.AsyncCommand<ModelMachine2, Page, fa
 
 }
 
-export class GoToAllCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class GoToAllCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
 
   constructor() { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
     return m.state.context.toDos.length > 0;
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await expect(page)
       .toMatchElement(CLASS_SELECTORS.FILTER_ITEMS, { text: 'All' })
@@ -485,15 +485,15 @@ export class GoToAllCommand implements fc.AsyncCommand<ModelMachine2, Page, fals
 
 }
 
-export class GoToActiveCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class GoToActiveCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
 
   constructor() { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
     return m.state.context.toDos.length > 0;
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await expect(page)
       .toMatchElement(CLASS_SELECTORS.FILTER_ITEMS, { text: 'Active' })
@@ -518,15 +518,15 @@ export class GoToActiveCommand implements fc.AsyncCommand<ModelMachine2, Page, f
 
 }
 
-export class GoToCompletedCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class GoToCompletedCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
 
   constructor() { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
     return m.state.context.toDos.length > 0;
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await expect(page)
       .toMatchElement(CLASS_SELECTORS.FILTER_ITEMS, { text: 'Completed' })
@@ -551,15 +551,15 @@ export class GoToCompletedCommand implements fc.AsyncCommand<ModelMachine2, Page
 
 }
 
-export class GoBackCommand implements fc.AsyncCommand<ModelMachine2, Page, false> {
+export class GoBackCommand implements fc.AsyncCommand<ModelMachine, Page, false> {
 
   constructor() { }
 
-  check(m: Readonly<ModelMachine2>) {
+  check(m: Readonly<ModelMachine>) {
     return m.state.context.navigation.length > 1;
   };
 
-  async run(m: ModelMachine2, page: Page) {
+  async run(m: ModelMachine, page: Page) {
 
     await page.goBack()
 

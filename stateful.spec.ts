@@ -1,10 +1,6 @@
 import * as fc from 'fast-check'
 import { CLASS_SELECTORS } from './cons';
 import {
-  // ValidEnterCommand,
-  // WhiteEnterCommand,
-  // EmptyEnterCommand,
-  // TrimEnterCommand,
   WriteInputCommand,
   MarkAllCompletedCommand,
   ToggleItemCompletedCommand,

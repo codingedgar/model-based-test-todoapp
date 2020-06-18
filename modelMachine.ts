@@ -207,9 +207,7 @@ const ACTION = {
     }),
 }
 
-export type ModelMachine = StateMachine<Model, Schema, Event, any>
-export type ModelMachine2 = Interpreter<Model, Schema, Event, any>
-export type ModelMachine3 = State<Model, Event, Schema, any>
+export type ModelMachine = Interpreter<Model, Schema, Event, any>
 
 export const modelMachine = Machine<Context, Schema, Event>({
   initial: 'DEFAULT',
