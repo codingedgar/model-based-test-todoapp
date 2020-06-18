@@ -9,9 +9,6 @@ describe('Index', () => {
     beforeEach(async () => {
       await page.goto('http://todomvc.com/examples/react/', { waitUntil: 'networkidle2' });
       await page.waitFor(CLASS_SELECTORS.NEW_TODO);
-      // await page.bringToFront();
-      // await page.waitFor(1000 * 3);
-      // console.log('waited')
     },
       // 1000 * 10
     )

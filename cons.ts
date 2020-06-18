@@ -1,18 +1,8 @@
 export type ToDoItem = {
   text: string
-  checked: boolean
+  completed: boolean
   editing: boolean
 }
-
-export const STATIC = {
-  VALID: 'valid',
-  TRIM: 'trim',
-  WHITESPACE: 'whitespace',
-  EMPTY: 'empty',
-  ALL: 'all',
-  ACTIVE: 'active',
-  COMPLETED: 'completed'
-} as const
 
 export type ValidInput = {
   text: string
@@ -37,10 +27,20 @@ export type EmptyInput = {
 export type Model = {
   input: ValidInput | TrimInput | WhiteSpaceInput | EmptyInput,
   toDos: ToDoItem[]
-  toggleAll: boolean
+  completeAll: boolean
   filter: 'all' | 'active' | 'completed',
   navigation: Model['filter'][]
 };
+
+export const STATIC = {
+  VALID: 'valid',
+  TRIM: 'trim',
+  WHITESPACE: 'whitespace',
+  EMPTY: 'empty',
+  ALL: 'all',
+  ACTIVE: 'active',
+  COMPLETED: 'completed'
+} as const
 
 export const CLASS_SELECTORS = {
   NEW_TODO: '.new-todo',

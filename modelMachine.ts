@@ -7,32 +7,26 @@ import {
 } from "xstate";
 import {
   lensIndex,
-  set,
   over,
-  not,
   remove,
   init,
   last,
 } from "ramda";
 import {
   Model,
-  ToDoItem,
-  STATIC
+  STATIC,
 } from "./cons";
 import {
-  itemsLeftCount,
-  itemsLeftCount2
+  itemsLeftCount
 } from "./utils";
 
 type Context = Model
 
 type Event
-  = { type: 'ASSIGN_INPUT', payload: Model['input'] }
-  | { type: 'ADD_VALID_TO_DO' }
-  | { type: 'ADD_TRIM_TO_DO' }
-  | { type: 'MARK_ALL_CHECKED' }
+  = { type: 'INPUT_ASSIGNED', payload: Model['input'] }
+  | { type: 'TO_DO_ADDED' }
+  | { type: 'TOGGLE_ALL_COMPLETED' }
   | { type: 'TOGGLE_ITEM_COMPLETED', index: number }
-  // | { type: 'ADD_TO_DOS', payload: Model['input'][] }
   | { type: 'EDITED', index: number, payload: boolean }
   | { type: 'TEXT_EDITED', index: number, payload: string }
   | { type: 'REMOVED_FROM_INDEX', index: number }
@@ -48,22 +42,34 @@ type Schema = {
 
 const ACTION = {
   ASSIGN_INPUT: assign<Context, Event>({
-    input: (ctx, e) => (e.type === 'ASSIGN_INPUT') ? e.payload : ctx.input
+    input: (ctx, e) => (e.type === 'INPUT_ASSIGNED') ? e.payload : ctx.input
   }),
-  ASSIGN_TODO: assign<Context, Event>(
+  ASSIGN_TO_DO: assign<Context, Event>(
     (ctx, e) => {
-      if (e.type === 'ADD_VALID_TO_DO') {
+      if (
+        e.type === 'TO_DO_ADDED'
+        && (
+          ctx.input.type === 'valid'
+          || ctx.input.type === 'trim'
+        )
+      ) {
 
         const toDos = ctx.toDos.concat({
-          text: ctx.input.text,
-          checked: false,
+          text: (ctx.input.type === 'trim')
+            ? ctx.input.text.trim()
+            : ctx.input.text,
+          completed: false,
           editing: false,
         });
 
         return {
           ...ctx,
           toDos,
-          toggleAll: itemsLeftCount2(toDos) === 0,
+          completeAll: itemsLeftCount(toDos) === 0,
+          input: {
+            text: '',
+            type: 'empty'
+          }
         }
 
       } else {
@@ -73,38 +79,15 @@ const ACTION = {
       }
     }
   ),
-  ASSIGN_TRIM_TODO: assign<Context, Event>(
+  TOGGLE_ALL_COMPLETED: assign<Context, Event>(
     (ctx, e) => {
-      if (e.type === 'ADD_TRIM_TO_DO') {
-
-        const toDos = ctx.toDos.concat({
-          text: ctx.input.text.trim(),
-          checked: false,
-          editing: false,
-        });
-
+      if (e.type === 'TOGGLE_ALL_COMPLETED') {
         return {
           ...ctx,
-          toDos,
-          toggleAll: itemsLeftCount2(toDos) === 0,
-        }
-
-      } else {
-
-        return ctx;
-
-      }
-    }
-  ),
-  MARK_ALL_CHECKED: assign<Context, Event>(
-    (ctx, e) => {
-      if (e.type === 'MARK_ALL_CHECKED') {
-        return {
-          ...ctx,
-          toggleAll: !ctx.toggleAll,
+          completeAll: !ctx.completeAll,
           toDos: ctx.toDos.map(todo => ({
             ...todo,
-            checked: ctx.toggleAll
+            completed: !ctx.completeAll
           }))
         }
 
@@ -121,14 +104,17 @@ const ACTION = {
 
         const toDos = over(
           lensIndex(e.index),
-          not,
+          toDo => ({
+            ...toDo,
+            completed: !toDo.completed
+          }),
           ctx.toDos
         );
 
         return {
           ...ctx,
           toDos,
-          toggleAll: itemsLeftCount2(toDos) === 0,
+          completeAll: itemsLeftCount(toDos) === 0,
         }
 
       } else {
@@ -138,12 +124,6 @@ const ACTION = {
       }
     }
   ),
-  EMPTY_INPUT: assign<Context, Event>({
-    input: () => ({
-      text: '',
-      type: STATIC.EMPTY,
-    })
-  }),
   EDIT: assign<Context, Event>({
     toDos: (ctx, e) => (e.type === 'EDITED')
       ? over(
@@ -178,10 +158,10 @@ const ACTION = {
 
       if (e.type === 'COMPLETED_CLEARED') {
 
-        const toDos = ctx.toDos.filter(toDo => !toDo.checked)
+        const toDos = ctx.toDos.filter(toDo => !toDo.completed)
         return {
           toDos,
-          toggleAll: itemsLeftCount2(toDos) === 0
+          completeAll: itemsLeftCount(toDos) === 0
         }
       } else {
 
@@ -233,6 +213,7 @@ export type ModelMachine3 = State<Model, Event, Schema, any>
 
 export const modelMachine = Machine<Context, Schema, Event>({
   initial: 'DEFAULT',
+  strict: true,
   context: {
     toDos: [],
     input: {
@@ -240,25 +221,18 @@ export const modelMachine = Machine<Context, Schema, Event>({
       type: STATIC.EMPTY,
     },
     filter: STATIC.ALL,
-    toggleAll: false,
+    completeAll: false,
     navigation: [STATIC.ALL],
   },
   states: {
     DEFAULT: {
       on: {
-        ADD_VALID_TO_DO: {
+        TO_DO_ADDED: {
           actions: [
-            ACTION.ASSIGN_TODO,
-            ACTION.EMPTY_INPUT,
+            ACTION.ASSIGN_TO_DO,
           ]
         },
-        ADD_TRIM_TO_DO: {
-          actions: [
-            ACTION.ASSIGN_TRIM_TODO,
-            ACTION.EMPTY_INPUT,
-          ]
-        },
-        ASSIGN_INPUT: {
+        INPUT_ASSIGNED: {
           actions: [
             ACTION.ASSIGN_INPUT,
           ]
@@ -296,6 +270,11 @@ export const modelMachine = Machine<Context, Schema, Event>({
         WENT_BACK: {
           actions: [
             ACTION.GO_BACK,
+          ]
+        },
+        TOGGLE_ALL_COMPLETED: {
+          actions: [
+            ACTION.TOGGLE_ALL_COMPLETED,
           ]
         },
       }

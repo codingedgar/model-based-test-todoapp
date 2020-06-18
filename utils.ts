@@ -7,34 +7,17 @@ import {
   allPass,
   clamp,
 } from 'ramda';
-import { Model } from "./cons";
+import { Model, CLASS_SELECTORS } from "./cons";
 
 export function filteredToDos(m: Model): Model['toDos'] {
   return m.toDos.filter(
-    x => m.filter === 'all' || (x.checked === (m.filter === 'completed'))
+    x => m.filter === 'all' || (x.completed === (m.filter === 'completed'))
   )
 }
 
-export function toggleCheckTodo(index: number, m: Model): Model {
-  m.toDos[index].checked = !m.toDos[index].checked;
-  m.toggleAll = itemsLeftCount(m) === 0;
-
-  return m
-}
-
-export function itemsLeftCount2(toDos: Model['toDos']) {
+export function itemsLeftCount(toDos: Model['toDos']) {
   return toDos.reduce(
-    (acc, toDo) => (!toDo.checked)
-      ? acc + 1
-      : acc,
-    0
-  )
-
-}
-
-export function itemsLeftCount(m: Model) {
-  return m.toDos.reduce(
-    (acc, toDo) => (!toDo.checked)
+    (acc, toDo) => (!toDo.completed)
       ? acc + 1
       : acc,
     0
@@ -43,7 +26,6 @@ export function itemsLeftCount(m: Model) {
 }
 
 export function pickToDo(number: number, m: Model) {
-  // console.log(m)
   return scale(
     number,
     0,
@@ -169,5 +151,34 @@ export function repeatString(input: string, times: number) {
 export function repeatWhiteSpace(times: number) {
 
   return repeat(' ', times).join('')
+
+}
+
+export async function clearNewToDo(selector: string) {
+
+  return page
+    .focus(CLASS_SELECTORS.NEW_TODO)
+    .then(
+      () =>
+        valueOfEl(selector)
+          .then(el =>
+            Promise.all(
+              el!
+                .split('')
+                .map(() =>
+                  page.keyboard.press('Backspace')
+                )
+            )
+          )
+    )
+    .then(
+      () =>
+        valueOfEl(CLASS_SELECTORS.NEW_TODO)
+          .then(value => {
+
+            expect(value).toStrictEqual('');
+
+          })
+    )
 
 }

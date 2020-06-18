@@ -1,13 +1,13 @@
 import * as fc from 'fast-check'
-import { CLASS_SELECTORS, STATIC } from './cons';
+import { CLASS_SELECTORS } from './cons';
 import {
-  ValidEnterCommand,
-  WhiteEnterCommand,
-  EmptyEnterCommand,
-  TrimEnterCommand,
+  // ValidEnterCommand,
+  // WhiteEnterCommand,
+  // EmptyEnterCommand,
+  // TrimEnterCommand,
   WriteInputCommand,
-  MarkAllCheckCommand,
-  ToggleItemCheckedCommand,
+  MarkAllCompletedCommand,
+  ToggleItemCompletedCommand,
   TriggerEditingCommand,
   EditTodoCommand,
   EditEmptyCommand,
@@ -18,13 +18,14 @@ import {
   GoToActiveCommand,
   GoToCompletedCommand,
   GoBackCommand,
+  EnterCommand,
 } from './commands';
 import {
   validToDoArbitrary,
   whitespaceToDoArbitrary,
   trimToDoArbitrary,
+  emptyToDoArbitrary,
 } from './arbitraties';
-import { string } from 'fast-check';
 import { modelMachine } from './modelMachine';
 import { interpret } from 'xstate';
 
@@ -48,34 +49,29 @@ describe('Index', () => {
                 .map(toDo => new WriteInputCommand(toDo)),
               trimToDoArbitrary()
                 .map(toDo => new WriteInputCommand(toDo)),
-              fc.constant(new WriteInputCommand({ text: '', type: 'empty' })),
-              fc.constant(new ValidEnterCommand()),
-              fc.constant(new WhiteEnterCommand()),
-              fc.constant(new TrimEnterCommand()),
-              fc.constant(new EmptyEnterCommand()),
+              emptyToDoArbitrary()
+                .map(toDo => new WriteInputCommand(toDo)),
+              fc.constant(new EnterCommand()),
               fc.array(validToDoArbitrary())
                 .map(toDos => new AddToDosCommands(toDos)),
-              fc.constant(new MarkAllCheckCommand()),
-              fc.constant(new ToggleItemCheckedCommand()),
+              fc.constant(new MarkAllCompletedCommand()),
+              fc.constant(new ToggleItemCompletedCommand()),
               fc.nat().noShrink().map(number => new TriggerEditingCommand(number)),
-              validToDoArbitrary()
-                .chain(toDo => fc.record({
-                  toDo: fc.constant(toDo),
-                  number: fc.nat().noShrink()
-                }))
+              fc.record({
+                toDo: validToDoArbitrary(),
+                number: fc.nat().noShrink()
+              })
                 .map(({ toDo, number }) => new EditTodoCommand(toDo, number)),
-              trimToDoArbitrary()
-                .chain(toDo => fc.record({
-                  toDo: fc.constant(toDo),
-                  number: fc.nat().noShrink()
-                }))
+              fc.record({
+                toDo: trimToDoArbitrary(),
+                number: fc.nat().noShrink()
+              })
                 .map(({ toDo, number }) => new EditTodoCommand(toDo, number)),
               fc.nat().noShrink().map(number => new EditEmptyCommand(number)),
-              validToDoArbitrary()
-                .chain(toDo => fc.record({
-                  toDo: fc.constant(toDo),
-                  number: fc.nat().noShrink()
-                }))
+              fc.record({
+                toDo: validToDoArbitrary(),
+                number: fc.nat().noShrink()
+              })
                 .map(({ toDo, number }) => new EditCancelCommand(toDo, number)),
               fc.constant(new ClearCompletedCommand()),
               fc.constant(new GoToAllCommand()),
@@ -85,34 +81,19 @@ describe('Index', () => {
 
             ],
             // {
-            //   replayPath: "AABABt:q"
+            //   replayPath: ""
             // },
-            {
-              replayPath: "ABAAB:V"
-            },
             // 10,
           ),
           async (commands) => {
 
             await page.goto('http://todomvc.com/examples/react/', { waitUntil: 'networkidle2' });
-            // await page.goto('http://todomvc.com/examples/vanillajs/', { waitUntil: 'networkidle2' });
 
             await page.waitFor(CLASS_SELECTORS.NEW_TODO);
 
             await fc.asyncModelRun(
               () => ({
-                // model: {
-                //   toDos: [],
-                //   input: {
-                //     text: '',
-                //     type: STATIC.EMPTY,
-                //   },
-                //   filter: STATIC.ALL,
-                //   toggleAll: false,
-                //   navigation: [STATIC.ALL]
-                // },
-                // model: interpret(modelMachine).start(),
-                model: modelMachine.initialState,
+                model: interpret(modelMachine).start(),
                 real: page
               }),
               commands
@@ -122,8 +103,6 @@ describe('Index', () => {
           // numRuns: 20,
           numRuns: 100,
           // verbose: true,
-          // seed: -1884671988, path: "3:3:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1", endOnFailure: true
-          seed: -1603525407, path: "1:2", endOnFailure: true
         }
       );
       // } catch (e) {

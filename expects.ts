@@ -1,41 +1,46 @@
 import { JSHandle, Page } from 'puppeteer';
 import { CLASS_SELECTORS, Model } from './cons';
-import { valueOfEl, itemsLeftCount, filteredToDos } from './utils';
+import { valueOfEl, filteredToDos, itemsLeftCount } from './utils';
 
 export async function checkModel(m: Model) {
 
   await Promise.all([
-    valueOfEl(CLASS_SELECTORS.NEW_TODO)
-      .then(value => {
-
-        // console.log(value?.split('').map(x => x.charCodeAt(0)))
-        // console.log(m.input.text.split('').map(x => x.charCodeAt(0)))
-        expect(value).toStrictEqual(m.input.text);
-
-      }),
-    checkToDosItems(m),
-    checkLocalStorage(m),
-    checkCount(m),
-    checkToggleAll(m, page),
-    checkNewToDo(m),
-    checkEditing(m),
-    checkClearCompleted(m),
-    checkFilterCount(m),
-    checkFilterHighlight(m),
-  ])
-
-  await Promise.all([
-    checkBBBB(m),
+    Promise.all([
+      checkInput(m),
+      checkToDosItems(m),
+      checkLocalStorage(m),
+      checkCount(m),
+      checkToggleAll(m, page),
+      checkNewToDo(m),
+      checkEditing(m),
+      checkClearCompleted(m),
+      checkFilterCount(m),
+      checkFilterHighlight(m),
+    ]),
+    Promise.all([
+      checkBBBB(m),
+    ])
   ])
 
 }
 
-export async function checkBBBB(m: Model) {
+async function checkInput(m: Model) {
+  return valueOfEl(CLASS_SELECTORS.NEW_TODO)
+    .then(value => {
+
+      // console.log(value?.split('').map(x => x.charCodeAt(0)))
+      // console.log(m.input.text.split('').map(x => x.charCodeAt(0)))
+      expect(value).toStrictEqual(m.input.text);
+
+    });
+}
+
+async function checkBBBB(m: Model) {
   // console.log(m)
   expect(m.navigation[m.navigation.length - 1]).toBe(m.filter)
 
 }
-export async function checkFilterHighlight(m: Model) {
+async function checkFilterHighlight(m: Model) {
   if (m.toDos.length > 0) {
 
     await page.evaluate(
@@ -59,7 +64,7 @@ export async function checkFilterHighlight(m: Model) {
 
 }
 
-export async function checkFilterCount(m: Model) {
+async function checkFilterCount(m: Model) {
 
   await page
     .$$(CLASS_SELECTORS.TODO_ITEMS_INPUT)
@@ -71,8 +76,8 @@ export async function checkFilterCount(m: Model) {
     })
 }
 
-export async function checkClearCompleted(m: Model) {
-  if (itemsLeftCount(m) < m.toDos.length) {
+async function checkClearCompleted(m: Model) {
+  if (itemsLeftCount(m.toDos) < m.toDos.length) {
     await valueOfEl(CLASS_SELECTORS.CLEAR_COMPLETED)
       .then(value => {
         expect(value).toBe('Clear completed');
@@ -83,7 +88,7 @@ export async function checkClearCompleted(m: Model) {
 
 }
 
-export async function checkEditing(m: Model) {
+async function checkEditing(m: Model) {
   if (m.toDos.length > 0) {
 
     await page.evaluate(
@@ -102,13 +107,13 @@ export async function checkEditing(m: Model) {
 
 }
 
-export async function checkCount(m: Model) {
+async function checkCount(m: Model) {
   if (m.toDos.length > 0) {
 
     await valueOfEl(CLASS_SELECTORS.COUNT)
       .then(count => {
 
-        const left = itemsLeftCount(m);
+        const left = itemsLeftCount(m.toDos);
 
         if (left === 1) {
           expect(count).toBe(`1 item left`);
@@ -121,36 +126,7 @@ export async function checkCount(m: Model) {
 
 }
 
-export async function clearNewToDo(selector: string) {
-
-  return page
-    .focus(CLASS_SELECTORS.NEW_TODO)
-    .then(
-      () =>
-        valueOfEl(selector)
-          .then(el =>
-            Promise.all(
-              el!
-                .split('')
-                .map(() =>
-                  page.keyboard.press('Backspace')
-                )
-            )
-          )
-    )
-    .then(
-      () =>
-        valueOfEl(CLASS_SELECTORS.NEW_TODO)
-          .then(value => {
-
-            expect(value).toStrictEqual('');
-
-          })
-    )
-
-}
-
-export async function checkLocalStorage(m: Model) {
+async function checkLocalStorage(m: Model) {
   if (m.toDos.length > 0) {
     return page.evaluate(
       () => localStorage.getItem('react-todos')
@@ -165,7 +141,7 @@ export async function checkLocalStorage(m: Model) {
   }
 }
 
-export async function checkToDosItems(m: Model) {
+async function checkToDosItems(m: Model) {
 
   if (m.toDos.length > 0) {
 
@@ -175,6 +151,7 @@ export async function checkToDosItems(m: Model) {
         CLASS_SELECTORS.TODO_ITEMS,
       )
         .then(value => {
+
           expect(value).toEqual(filteredToDos(m).map(x => [x.text]));
 
         }),
@@ -184,7 +161,7 @@ export async function checkToDosItems(m: Model) {
   }
 }
 
-export async function checkNewToDo(m: Model) {
+async function checkNewToDo(m: Model) {
 
   return valueOfEl(CLASS_SELECTORS.NEW_TODO)
     .then(value => {
@@ -204,7 +181,7 @@ export function hasClass(className: string) {
   }
 }
 
-export function allHaveClass(className: string) {
+function allHaveClass(className: string) {
   return function (handle: JSHandle<any>) {
     return handle.evaluate(el => el.className)
       .then(classes => {
@@ -224,7 +201,7 @@ export function hasNoItems() {
     })
 }
 
-export async function checkToggleAll(m: Model, page: Page) {
+async function checkToggleAll(m: Model, page: Page) {
 
   if (m.toDos.length > 0) {
 
@@ -236,10 +213,9 @@ export async function checkToggleAll(m: Model, page: Page) {
         )
         .then(x => {
           // console.log(m)
-          expect(x).toEqual(filteredToDos(m).map(({ text, editing, checked }) => [
+          expect(x).toEqual(filteredToDos(m).map(({ text, editing, completed }) => [
             text,
-            `${(m.toggleAll || checked) ? 'completed' : ''}${((m.toggleAll || checked) && editing) ? ' ' : ''}${editing ? 'editing' : ''}`
-            // `${(m.toggleAll || checked) ? 'completed' : ''}${((m.toggleAll || checked) && editing) ? ' ' : ''}${editing ? 'editing' : ''}`
+            `${(m.completeAll || completed) ? 'completed' : ''}${((m.completeAll || completed) && editing) ? ' ' : ''}${editing ? 'editing' : ''}`
           ]));
 
         }),
@@ -248,9 +224,9 @@ export async function checkToggleAll(m: Model, page: Page) {
         .then(el => el?.evaluate(el => (el as HTMLInputElement).checked))
         .then(checked => {
 
-          const left = itemsLeftCount(m)
+          const left = itemsLeftCount(m.toDos)
 
-          expect(left === 0).toBe(m.toggleAll)
+          expect(left === 0).toBe(m.completeAll)
           expect(checked).toBe(left === 0)
 
         }),
@@ -261,14 +237,14 @@ export async function checkToggleAll(m: Model, page: Page) {
         )
         .then(x => {
 
-          expect(x).toEqual(filteredToDos(m).map((toDo) => [m.toggleAll || toDo.checked]));
+          expect(x).toEqual(filteredToDos(m).map((toDo) => [m.completeAll || toDo.completed]));
 
         }),
     ])
   }
 }
 
-export async function checkTodoItemsInput(m: Model) {
+async function checkTodoItemsInput(m: Model) {
   return Promise.all([
     page
       .evaluate(
@@ -277,7 +253,7 @@ export async function checkTodoItemsInput(m: Model) {
       )
       .then(x => {
 
-        expect(x).toEqual(filteredToDos(m).map((toDo) => [toDo.checked]));
+        expect(x).toEqual(filteredToDos(m).map((toDo) => [toDo.completed]));
 
       }),
   ])

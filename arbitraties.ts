@@ -28,10 +28,19 @@ export function trimToDoArbitrary() {
     middle: validToDoArbitrary(),
     end: fc.integer(1, 15),
   })
-    .map(x => `${repeatWhiteSpace(x.start)}${x.middle}${repeatWhiteSpace(x.end)}`)
+    .map(x => `${repeatWhiteSpace(x.start)}${x.middle.text}${repeatWhiteSpace(x.end)}`)
     .map(text => ({
       text: text,
       type: 'trim' as const
     }))
+
+}
+
+export function emptyToDoArbitrary() {
+
+  return fc.record({
+    text: fc.constant(''),
+    type: fc.constant('empty' as const)
+  })
 
 }
